@@ -129,6 +129,8 @@ class BeerGame(tk.Tk):
 class StartPage(tk.Frame):
     def __init__(self, master):
         tk.Frame.__init__(self, master)
+
+        
         """
         label = tk.Label(self, text = "Wilkommen zum Bierspiel!", font = helv36)
         loginButton = tk.Button(self, text="Login", relief="raised", command=self.callback_login)
@@ -139,7 +141,7 @@ class StartPage(tk.Frame):
         labelStatus = tk.Label(self, textvariable = self.statusTextVar, font = helv22)"""
 
 
-
+        self.produceLimit = 0
         # set a label with the title of the page
         labelPage = tk.Label(self, text="Login - Team", font=helv22b)
         labelPage.grid(column=0, row=0)
@@ -188,7 +190,8 @@ class GamePage(tk.Frame):
         tk.Frame.__init__(self, master)
         gamePage.set()
 
-        
+        self.produceLimit =0
+        self.timeLeft = 0
         #getting all data per team from db
         team = app.getTeam()
         self.teamValues, self.productValues = db_clients.readInitialTeamValues(team)
@@ -336,7 +339,7 @@ class GamePage(tk.Frame):
 
 
         # set label for giving the Open Deliveries table a title
-        labelTable2 = tk.Label(self, text="Open Deliveries", font=helv9b)
+        labelTable2 = tk.Label(self, text="Open Order", font=helv9b)
 
         # set labels for the Open Deliveries Table
         labelBlue2 = tk.Label(self, text="Blue product: " + str(openBlue), font=helv9)
@@ -587,6 +590,32 @@ class GamePage(tk.Frame):
         purpleProduce = self.entryPurpleVarProduction.get()
         redProduce = self.entryRedVarProduction.get()
         yellowProduce = self.entryYellowVarProduction.get()
+
+        # check if the raw invatrory will suffice
+        rawFlag = True
+        rawFlagB = True
+        rawFlagP = True
+        rawFlagR = True
+        rawFlagY = True
+
+        if(self.inventoryRawBlue < blueProduce):
+            rawFlagB = False
+        if(self.inventoryRawPurple < purpleProduce):
+            rawFlagP = False
+        if(self.inventoryRawRed < redProduce):
+            rawFlagR = False
+        if(self.inventoryRawYellow < yellowProduce):
+            rawFlagY = False
+        arr = [rawFlagB,rawFlagP,rawFlagR,rawFlagY]
+
+        c = 0
+
+        for i in arr:
+            if i == False:
+                c=c+1
+        if(c>0):
+            rawFlag = False
+
         
         # calculate production time of each product group
         totalProductionTimeBlue = int(blueProduce) * int(self.ptBlue)
@@ -596,15 +625,23 @@ class GamePage(tk.Frame):
 
         # calculate total production time
         totalProductionTime = totalProductionTimeBlue +  totalProductionTimePurple + totalProductionTimeRed +  totalProductionTimeYellow
-        
+        pLim = self.produceLimit + totalProductionTime
         # check if enough time for production is left and if it is, write it into the database and update lables. Otherwise display errormessage
         timer = int((labelTimer.cget("text"))[7:])
 
-        if totalProductionTime >= timer:
-            
+        if pLim >= timer or rawFlag == False:
+            text = ""
+            timelocal = timer-self.produceLimit
+            if(timelocal < 0):
+                timelocal =0
+            if (rawFlag == False):
+                text = "Insufficient raw materials !"
+            else: 
+                text = "You do not have enough time left in this round to produce this amount of products!Production  Time left : " + str(timelocal)
+
             popup = tk.Tk()
             popup.wm_title("Not enough time")
-            label = tk.Label(popup, text="You do not have enough time left in this round to produce this amount of products!", font=helv22)
+            label = tk.Label(popup, text=text, font=helv22)
             label.pack(side="top", fill="x", pady=10)
             B1 = tk.Button(popup, text="Okay", command=popup.destroy)
             B1.pack()
@@ -644,6 +681,8 @@ class GamePage(tk.Frame):
             self.labelPurple3.config(text = "Purple product: " + str(self.fgPurple))
             self.labelRed3.config(text = "Red product: " + str(self.fgRed))
             self.labelYellow3.config(text = "Yellow product: " + str(self.fgYellow))
+
+            self.produceLimit = self.produceLimit + totalProductionTime
 
 
     def onClickOrder(self):
