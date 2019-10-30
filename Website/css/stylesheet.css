@@ -1,0 +1,12 @@
+@include media-breakpoint-up(md) {
+}
+
+.colorOne{
+    background-color: aquamarine;
+}
+.colorTwo{
+    background-color: burlywood;
+}
+.colorThree{
+    background-color: palegreen;
+}
